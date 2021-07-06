@@ -11,8 +11,10 @@ import warnings
 import random
 import psycopg2
 
-class App:	
+class App:
 	def __init__(self):
+		#self.filename = "/home/pospel-miguel/miguel.html"
+		self.filename = "/var/www/html/miguel.html"
 		pass
 
 	def connectDB(self):
@@ -66,21 +68,57 @@ class App:
 		mgr = owm.weather_manager()
 
 		while True:
-			observation = mgr.weather_at_place('Pelotas,BR')
+			#city = 'Pelotas,BR'
+			#city = 'London,GB'
+			city = 'Mumbai,IN'
+			observation = mgr.weather_at_place(city)
 			w = observation.weather
-			
 			# temp = {"temp": w.temperature('celsius')['temp'], "date": observation.reception_time(timeformat='iso')}
-			
 			temp = w.temperature('celsius')['temp']
 			obj = json.dumps({"id": "miguel-db-temp", "data": "%s"%temp})
 
 			print("Publishing...", obj)
 			client.publish(topic, obj)
 			self.insertTable('miguel', temp, obj)
+
+			dt = datetime.now(timezone.utc)
+			self.writeFile(temp, dt)
 			time.sleep(3)
 
+	def writeFile(self, temp, dt):
+		arquivo = open(self.filename, "w")
+		arquivo.close()
+		arquivo = open(self.filename, "a")
+		linha_arq = "<!DOCTYPE html>" + " \n"
+		arquivo.write(linha_arq)
+		linha_arq = "<html>" + " \n"
+		arquivo.write(linha_arq)
+		linha_arq = "  <head>" + " \n"
+		arquivo.write(linha_arq)
+		linha_arq = "    <meta charset='utf-8'>" + " \n"
+		arquivo.write(linha_arq)
+		linha_arq = "    <title>Ultimas Medicoes</title>" + " \n"
+		arquivo.write(linha_arq)
+		linha_arq = "    <meta http-equiv='refresh' content='60'>" + " \n"
+		arquivo.write(linha_arq)
+		linha_arq = "  </head>" + " \n"
+		arquivo.write(linha_arq)
+		linha_arq = "  <body>" + " \n"
+		arquivo.write(linha_arq)
+		linha_arq = "<table><tbody>" + " \n"
+		arquivo.write(linha_arq)
+		linha_arq = "<tr><td>" + str(temp) + "</td><td>" + str(dt) + " </td></tr>"
+		arquivo.write(linha_arq)
+		linha_arq = "</tbody></table>"
+		arquivo.write(linha_arq)
+		linha_arq = "  </body>" + " \n"
+		arquivo.write(linha_arq)
+		linha_arq = "</html>" + " \n"
+		arquivo.write(linha_arq)
+		arquivo.close()
+
 main = App()
-main.connectDB()
-main.createTable('miguel')
+#main.connectDB()
+#main.createTable('miguel')
 #main.insertTable('miguel', 10, '{"id": "oi"}')
 main.apiPublish()
